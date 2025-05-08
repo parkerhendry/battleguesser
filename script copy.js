@@ -154,12 +154,6 @@
             if (gameState.resultMap) {
                 gameState.resultMap.remove(); // Clean up existing map
             }
-            
-            // Clear any existing markers and lines
-            gameState.originalMarker = null;
-            gameState.guessMarker = null;
-            gameState.resultLine = null;
-            
             gameState.resultMap = L.map('resultMap').setView([30, 10], 2);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

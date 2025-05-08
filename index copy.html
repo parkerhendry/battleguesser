@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Battle Guesser</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --background: #f9fafb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Card for the map/image containers */
+        .card {
+            background-color: var(--card);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            overflow: visible; /* Allow content to overflow for hover effects */
+            position: relative;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s ease;
+            font-size: 1rem;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-success:hover {
+            background-color: #0da271;
+        }
+        
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mt-4 {
+            margin-top: 1rem;
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .flex-col {
+            flex-direction: column;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .gap-4 {
+            gap: 1rem;
+        }
+        
+        .w-full {
+            width: 100%;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (min-width: 768px) {
+            .grid-cols-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        #map, #resultMap {
+            height: 400px;
+            border-radius: 0.5rem;
+            z-index: 1;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        #map:hover, #resultMap:hover {
+            transform: scale(1.5);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        #resultMap {
+            height: 350px;
+            margin-bottom: 1rem;
+        }
+
+        .battle-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .battle-image:hover {
+            transform: scale(1.5);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        /* Create containers for hover elements */
+        .map-container, .image-container {
+            position: relative;
+            overflow: visible;
+        }
+        
+        /* Center the hover scale effect */
+        #map:hover, #resultMap:hover, .battle-image:hover {
+            transform: scale(1.5);
+            transform-origin: center center;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+        
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-primary {
+            background-color: #dbeafe;
+            color: var(--primary);
+        }
+        
+        .badge-success {
+            background-color: #d1fae5;
+            color: var(--success);
+        }
+        
+        .badge-warning {
+            background-color: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .badge-danger {
+            background-color: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .progress {
+            width: 100%;
+            height: 0.75rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+        
+        .stats-card {
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .battle-details {
+            border-left: 4px solid var(--primary);
+            padding-left: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .marker-icon {
+            background-color: red;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+        }
+        
+        .splash-screen {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .game-area, .result-area {
+            display: none;
+        }
+        
+        .attribution {
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .round-indicator {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+        
+        .helper-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Historical Battle Guesser</h1>
+            <p class="subtitle">Test your knowledge of famous battles throughout history</p>
+        </header>
+        
+        <!-- Splash Screen -->
+        <div id="splashScreen" class="splash-screen">
+            <div class="card">
+                <h2 class="mb-4">Welcome to Battle Guesser!</h2>
+                <p class="mb-4">Look at images of famous historical battles, then guess:</p>
+                <ul class="mb-4" style="list-style-position: inside; padding-left: 1rem;">
+                    <li>Where the battle took place (by clicking on the map)</li>
+                    <li>When the battle occurred (by entering the year)</li>
+                </ul>
+                <p class="mb-4">You'll earn points based on how close your guesses are!</p>
+                <button id="startGameBtn" class="btn btn-block">Start Game</button>
+            </div>
+        </div>
+        
+        <!-- Game Area -->
+        <div id="gameArea" class="game-area">
+            <div class="round-indicator">
+                <span id="roundNumber">Round 1/5</span>
+                <span id="totalScore">Total Score: 0</span>
+            </div>
+            
+            <div class="grid grid-cols-2">
+                <div class="card">
+                    <h2 class="mb-4">Battle Image</h2>
+                    <div class="image-container">
+                        <img id="battleImage" src="/api/placeholder/800/500" alt="Historical battle" class="battle-image">
+                    </div>
+                    <p id="battleHint" class="helper-text">Look at the image carefully for clues about where and when this battle took place.</p>
+                </div>
+                
+                <div class="card">
+                    <h2 class="mb-2">Make Your Guess</h2>
+                    
+                    <div class="mb-4">
+                        <label for="yearGuess">What year did this battle occur?</label>
+                        <input type="number" id="yearGuess" class="form-control" placeholder="Enter year (e.g. 1815)">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label>Where did this battle take place? (Click on the map)</label>
+                        <div class="map-container">
+                            <div id="map"></div>
+                        </div>
+                        <p class="helper-text mt-4" id="locationSelected">No location selected yet</p>
+                    </div>
+                    
+                    <button id="submitGuessBtn" class="btn btn-success btn-block">Submit Guess</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Result Area -->
+        <div id="resultArea" class="result-area">
+            <div class="card">
+                <h2 id="battleName" class="mb-2">Battle Name</h2>
+                <p id="battleYear" class="mb-4">Year: 1800</p>
+                
+                <div class="grid grid-cols-2">
+                    <div>
+                        <img id="resultBattleImage" src="/api/placeholder/800/500" alt="Historical battle" class="battle-image">
+                        <div id="battleDescription" class="battle-details">
+                            Battle description goes here.
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="stats-card">
+                            <h3>Your Results</h3>
+                            
+                            <div class="mb-2 mt-4">
+                                <div class="flex justify-between">
+                                    <span>Location Accuracy</span>
+                                    <span id="distanceResult">0 km away</span>
+                                </div>
+                                <div class="progress">
+                                    <div id="locationProgressBar" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="flex justify-between">
+                                    <span>Year Accuracy</span>
+                                    <span id="yearResult">0 years off</span>
+                                </div>
+                                <div class="progress">
+                                    <div id="yearProgressBar" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <p>Round Score</p>
+                                <div id="roundScore" class="score-display">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="map-container">
+                            <div id="resultMap" style="height: 350px; margin-bottom: 1rem;"></div>
+                        </div>
+                        
+                        <div class="flex gap-4">
+                            <button id="nextRoundBtn" class="btn flex-1">Next Battle</button>
+                            <button id="endGameBtn" class="btn btn-secondary">End Game</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- End Game Screen -->
+        <div id="endGameScreen" style="display: none;">
+            <div class="card text-center">
+                <h2 class="mb-4">Game Over!</h2>
+                <p class="mb-2">You've completed all rounds.</p>
+                <div class="score-display" id="finalScore">0</div>
+                <p id="scoreBreakdown" class="mb-4">Average score per round: 0</p>
+                <button id="playAgainBtn" class="btn">Play Again</button>
+            </div>
+        </div>
+        
+        <div class="attribution">
+            Created by Parker Hendry
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
