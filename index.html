@@ -328,6 +328,21 @@
             color: var(--text-secondary);
             margin-top: 0.25rem;
         }
+        .actual-location-marker, .guess-location-marker {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            contain: none !important;
+        }
+        
+        .actual-location-marker div, .guess-location-marker div {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .marker-icon {
+            background-color: transparent;
+            border: none;
+        }
     </style>
 </head>
 <body>

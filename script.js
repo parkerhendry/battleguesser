@@ -988,6 +988,15 @@
             gameState.totalScore = 0;
             startNewRound();
             
+            // Reset the next round button text
+            nextRoundBtn.textContent = 'Next Battle';
+            
+            // Remove any existing score message
+            const existingScoreMessage = document.getElementById('scoreMessage');
+            if (existingScoreMessage) {
+                existingScoreMessage.remove();
+            }
+            
             splashScreen.style.display = 'none';
             endGameScreen.style.display = 'none';
             gameArea.style.display = 'block';
@@ -1083,7 +1092,7 @@
             gameState.usedBattles.push(gameState.currentBattle.id);
             
             // Set a loading image
-            battleImage.src = "/api/placeholder/800/500"; // Placeholder while loading
+            battleImage.src = "images/Loading_icon.gif"; // Placeholder while loading
             
             // Try to fetch a dynamic image if the battle has an imageQuery
             try {
@@ -1186,17 +1195,19 @@
             // Add markers for actual and guessed locations
             gameState.originalMarker = L.marker(gameState.currentBattle.location, {
                 icon: L.divIcon({
-                    className: 'marker-icon',
-                    html: '<div style="background-color: green; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>',
-                    iconSize: [12, 12]
+                    className: 'actual-location-marker',
+                    html: '<div style="background-color: green; border-radius: 50%; width: 20px; height: 20px; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
                 })
             }).addTo(gameState.resultMap).bindPopup('Actual location');
             
             gameState.guessMarker = L.marker(gameState.guessLocation, {
                 icon: L.divIcon({
-                    className: 'marker-icon',
-                    html: '<div style="background-color: red; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>',
-                    iconSize: [12, 12]
+                    className: 'guess-location-marker',
+                    html: '<div style="background-color: red; border-radius: 50%; width: 20px; height: 20px; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
                 })
             }).addTo(gameState.resultMap).bindPopup('Your guess');
             
@@ -1252,6 +1263,12 @@
             finalScoreElement.textContent = gameState.totalScore;
             scoreBreakdownElement.textContent = `Average score per round: ${averageScore}`;
             
+            // Remove any existing score message
+            const existingScoreMessage = document.getElementById('scoreMessage');
+            if (existingScoreMessage) {
+                existingScoreMessage.remove();
+            }
+            
             // Display different message based on score
             let message = '';
             if (averageScore >= 80) {
@@ -1264,8 +1281,9 @@
                 message = 'Room for improvement. Try again!';
             }
             
+            // Add the message with an ID so we can remove it later
             document.getElementById('scoreBreakdown').insertAdjacentHTML('afterend', 
-                `<p class="mb-4">${message}</p>`);
+                `<p id="scoreMessage" class="mb-4">${message}</p>`);
             
             // Show end game screen
             gameArea.style.display = 'none';
