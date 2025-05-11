@@ -878,6 +878,8 @@
             }
         ];
 
+        const SHEETDB_URL = "https://sheetdb.io/api/v1/zxzn5q5hxbnsm";
+
         // Game state
         let gameState = {
             currentBattle: null,
@@ -890,7 +892,11 @@
             marker: null,
             resultMap: null,
             originalMarker: null,
-            guessMarker: null
+            guessMarker: null,
+            
+            // Add these properties for tracking battle details
+            battleResults: [],
+            battleNames: []
         };
 
         // DOM Elements
@@ -920,9 +926,245 @@
         const finalScoreElement = document.getElementById('finalScore');
         const scoreBreakdownElement = document.getElementById('scoreBreakdown');
 
+        // Leaderboard functionality
+        const leaderboardContainer = document.getElementById('leaderboardContainer');
+        const leaderboardBody = document.getElementById('leaderboardBody');
+        const playerNameInput = document.getElementById('playerName');
+        const submitScoreBtn = document.getElementById('submitScoreBtn');
+        const scoreDetailsModal = document.getElementById('scoreDetailsModal');
+        const battleDetailsBody = document.getElementById('battleDetailsBody');
+        const modalPlayerName = document.getElementById('modalPlayerName');
+        const closeModalBtn = document.querySelector('.close-modal');
+
         // Constants for scoring
         const MAX_DISTANCE_KM = 5000; // Maximum distance for scoring
         const MAX_YEAR_DIFF = 500; // Maximum year difference for scoring
+
+        function saveBattleResult(battleName, locationScore, yearScore, roundScore) {
+            gameState.battleResults.push({
+                battleName: battleName,
+                locationScore: Math.round(locationScore),
+                yearScore: Math.round(yearScore),
+                roundScore: roundScore
+            });
+            
+            // Also save the battle name for reference
+            if (!gameState.battleNames.includes(battleName)) {
+                gameState.battleNames.push(battleName);
+            }
+        }
+
+        // Function to submit score to leaderboard
+        async function submitScore() {
+            const playerName = playerNameInput.value.trim();
+            
+            if (!playerName) {
+                alert('Please enter your name before submitting your score.');
+                return;
+            }
+            
+            // Disable the submit button while submitting
+            submitScoreBtn.disabled = true;
+            submitScoreBtn.textContent = 'Submitting...';
+            
+            try {
+                // Create battle details JSON
+                const battleDetails = JSON.stringify(gameState.battleResults);
+                
+                // Current date in YYYY-MM-DD format
+                const today = new Date();
+                const date = today.toISOString().split('T')[0];
+                
+                // Data to send to SheetDB
+                const data = {
+                    name: playerName,
+                    score: gameState.totalScore,
+                    date: date,
+                    battle_details: battleDetails
+                };
+
+                console.log(data);
+                
+                // Send data to SheetDB
+                const response = await fetch(SHEETDB_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ data: [data] })
+                });
+                
+                if (response.ok) {
+                    // Reset button state
+                    submitScoreBtn.textContent = 'Score Submitted!';
+                    
+                    // Fetch and display the leaderboard
+                    fetchLeaderboard();
+                } else {
+                    throw new Error('Failed to submit score');
+                }
+            } catch (error) {
+                console.error('Error submitting score:', error);
+                alert('There was an error submitting your score. Please try again.');
+                submitScoreBtn.disabled = false;
+                submitScoreBtn.textContent = 'Submit to Leaderboard';
+            }
+        }
+
+        // Function to fetch leaderboard data
+        async function fetchLeaderboard() {
+            try {
+                leaderboardContainer.style.display = 'block';
+                leaderboardBody.innerHTML = '<tr><td colspan="5" class="leaderboard-loading">Loading leaderboard data...</td></tr>';
+                
+                // Fetch data from SheetDB, sorted by score in descending order
+                const response = await fetch(`${SHEETDB_URL}?sort_by=score&sort_order=desc`);
+                const data = await response.json();
+                
+                // If no data, show message
+                if (!data || data.length === 0) {
+                    leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">No scores yet. Be the first!</td></tr>';
+                    return;
+                }
+                
+                // Clear the table
+                leaderboardBody.innerHTML = '';
+                
+                // Add entries to the leaderboard
+                data.slice(0, 10).forEach((entry, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Create rank cell with medal emojis for top 3
+                    const rankCell = document.createElement('td');
+                    if (index === 0) {
+                        rankCell.innerHTML = '🥇 1st';
+                    } else if (index === 1) {
+                        rankCell.innerHTML = '🥈 2nd';
+                    } else if (index === 2) {
+                        rankCell.innerHTML = '🥉 3rd';
+                    } else {
+                        rankCell.textContent = `${index + 1}th`;
+                    }
+                    
+                    // Create other cells
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = entry.name;
+                    
+                    const scoreCell = document.createElement('td');
+                    scoreCell.textContent = entry.score;
+                    
+                    const dateCell = document.createElement('td');
+                    dateCell.textContent = entry.date;
+                    
+                    // Create the view details button
+                    const detailsCell = document.createElement('td');
+                    const detailsButton = document.createElement('button');
+                    detailsButton.className = 'view-details-btn';
+                    detailsButton.textContent = 'View Details';
+                    detailsButton.addEventListener('click', () => {
+                        showBattleDetails(entry.name, entry.battle_details);
+                    });
+                    detailsCell.appendChild(detailsButton);
+                    
+                    // Add all cells to the row
+                    row.appendChild(rankCell);
+                    row.appendChild(nameCell);
+                    row.appendChild(scoreCell);
+                    row.appendChild(dateCell);
+                    row.appendChild(detailsCell);
+                    
+                    // Add row to the table
+                    leaderboardBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+                leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">Error loading leaderboard data.</td></tr>';
+            }
+        }
+
+        // Function to show battle details in modal
+        function showBattleDetails(playerName, battleDetailsJson) {
+            try {
+                // Clear previous details
+                battleDetailsBody.innerHTML = '';
+                
+                // Set player name in modal
+                modalPlayerName.textContent = `${playerName}'s Battle Results`;
+                
+                // Parse battle details
+                const battleDetails = typeof battleDetailsJson === 'string' ? 
+                    JSON.parse(battleDetailsJson) : battleDetailsJson;
+                
+                // If no details, show message
+                if (!battleDetails || battleDetails.length === 0) {
+                    battleDetailsBody.innerHTML = '<tr><td colspan="4" class="text-center">No battle details available.</td></tr>';
+                } else {
+                    // Add battle details to modal
+                    battleDetails.forEach((battle, index) => {
+                        const row = document.createElement('tr');
+                        
+                        // Create cells
+                        const battleCell = document.createElement('td');
+                        battleCell.textContent = battle.battleName;
+                        
+                        const locationScoreCell = document.createElement('td');
+                        locationScoreCell.innerHTML = `${battle.locationScore}
+                            <div class="score-indicator">
+                                <div class="score-bar" style="width: ${battle.locationScore}%; background-color: ${getScoreColor(battle.locationScore)}"></div>
+                            </div>`;
+                        
+                        const yearScoreCell = document.createElement('td');
+                        yearScoreCell.innerHTML = `${battle.yearScore}
+                            <div class="score-indicator">
+                                <div class="score-bar" style="width: ${battle.yearScore}%; background-color: ${getScoreColor(battle.yearScore)}"></div>
+                            </div>`;
+                        
+                        const totalScoreCell = document.createElement('td');
+                        totalScoreCell.innerHTML = `${battle.roundScore}
+                            <div class="score-indicator">
+                                <div class="score-bar" style="width: ${battle.roundScore}%; background-color: ${getScoreColor(battle.roundScore)}"></div>
+                            </div>`;
+                        
+                        // Add cells to row
+                        row.appendChild(battleCell);
+                        row.appendChild(locationScoreCell);
+                        row.appendChild(yearScoreCell);
+                        row.appendChild(totalScoreCell);
+                        
+                        // Add row to table
+                        battleDetailsBody.appendChild(row);
+                    });
+                }
+                
+                // Show the modal
+                scoreDetailsModal.style.display = 'block';
+            } catch (error) {
+                console.error('Error showing battle details:', error);
+                alert('Error showing battle details.');
+            }
+        }
+
+        // Helper function to get color based on score
+        function getScoreColor(score) {
+            if (score >= 80) return '#10b981'; // green
+            if (score >= 50) return '#f59e0b'; // orange
+            return '#ef4444'; // red
+        }
+
+        // Close modal when clicking the X
+        closeModalBtn.addEventListener('click', () => {
+            scoreDetailsModal.style.display = 'none';
+        });
+
+        // Also close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === scoreDetailsModal) {
+                scoreDetailsModal.style.display = 'none';
+            }
+        });
+
+        // Event listener for score submission
+        submitScoreBtn.addEventListener('click', submitScore);
 
         // Initialize map
         function initMap() {
@@ -986,10 +1228,22 @@
         function startGame() {
             gameState.roundsPlayed = 0;
             gameState.totalScore = 0;
+            gameState.battleResults = []; // Reset battle results
+            gameState.battleNames = []; // Reset battle names
             startNewRound();
             
             // Reset the next round button text
             nextRoundBtn.textContent = 'Next Battle';
+            
+            // Reset submission button
+            submitScoreBtn.disabled = false;
+            submitScoreBtn.textContent = 'Submit to Leaderboard';
+            
+            // Reset player name input
+            playerNameInput.value = '';
+            
+            // Hide leaderboard until submission
+            leaderboardContainer.style.display = 'none';
             
             // Remove any existing score message
             const existingScoreMessage = document.getElementById('scoreMessage');
@@ -1145,6 +1399,9 @@
             // Update game state
             gameState.roundsPlayed++;
             gameState.totalScore += roundScore;
+            
+            // Save this battle result for the leaderboard
+            saveBattleResult(gameState.currentBattle.name, locationScore, yearScore, roundScore);
             
             // Update UI for results
             battleNameElement.textContent = gameState.currentBattle.name;

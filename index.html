@@ -343,6 +343,114 @@
             background-color: transparent;
             border: none;
         }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leaderboard-table th {
+            font-weight: 600;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .leaderboard-table tr:nth-child(even) {
+            background-color: rgba(243, 244, 246, 0.5);
+        }
+
+        .leaderboard-table tr:hover {
+            background-color: rgba(243, 244, 246, 0.8);
+        }
+
+        .view-details-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .view-details-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: var(--card);
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .close-modal {
+            color: var(--text-secondary);
+            float: right;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: var(--text);
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .details-table th,
+        .details-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leaderboard-loading {
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .score-indicator {
+            width: 100%;
+            height: 5px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .score-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -462,12 +570,57 @@
         
         <!-- End Game Screen -->
         <div id="endGameScreen" style="display: none;">
+            <div class="card text-center leaderboard-section mb-4">
+                <h3 class="mb-2">Submit Your Score</h3>
+                <div class="mb-4">
+                    <input type="text" id="playerName" class="form-control" placeholder="Enter your name" maxlength="20">
+                </div>
+                <button id="submitScoreBtn" class="btn mb-4">Submit to Leaderboard</button>
+                
+                <div id="leaderboardContainer" style="display: none;">
+                    <h3 class="mb-2">Leaderboard</h3>
+                    <div class="leaderboard-loading">Loading leaderboard data...</div>
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Score</th>
+                                <th>Date</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <!-- Leaderboard entries will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div class="card text-center">
                 <h2 class="mb-4">Game Over!</h2>
                 <p class="mb-2">You've completed all rounds.</p>
                 <div class="score-display" id="finalScore">0</div>
                 <p id="scoreBreakdown" class="mb-4">Average score per round: 0</p>
                 <button id="playAgainBtn" class="btn">Play Again</button>
+            </div>
+        </div>
+        <div id="scoreDetailsModal" class="modal">
+        <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h3 id="modalPlayerName">Player's Battle Details</h3>
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>Battle</th>
+                            <th>Location Score</th>
+                            <th>Year Score</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="battleDetailsBody">
+                        <!-- Battle details will be inserted here -->
+                    </tbody>
+                </table>
             </div>
         </div>
         
